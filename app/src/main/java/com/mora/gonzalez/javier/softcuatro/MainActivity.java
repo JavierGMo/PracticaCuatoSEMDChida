@@ -14,6 +14,7 @@ import android.widget.ListView;
 import android.widget.RadioGroup;
 import android.widget.Toast;
 
+import com.mora.gonzalez.javier.softcuatro.archivo.ArchivoPDF;
 import com.mora.gonzalez.javier.softcuatro.bd.PagosClientes;
 
 import java.util.ArrayList;
@@ -21,7 +22,7 @@ import java.util.ArrayList;
 public class MainActivity extends AppCompatActivity {
     private RadioGroup opcionesPagos;
     private EditText correoTxt, noTarjetaTxt, nombreCompletoTxt, montoTxt;
-    private Button btnPagarJ;
+    private Button btnPagarJ, btnPDFPagoDigital, btnPDFPagoDirecto;
     private LinearLayout layoutALlenar;
     private ListView listaDeLosPagos;
     private SQLiteDatabase bdPagos;
@@ -46,6 +47,9 @@ public class MainActivity extends AppCompatActivity {
         montoTxt = findViewById(R.id.montoAPagar);
         //Boton para pagar
         btnPagarJ = findViewById(R.id.buttonDepositar);
+        //Botones para hacer los pdfs de los pagos
+        btnPDFPagoDigital = findViewById(R.id.btn_pago_digital);
+        btnPDFPagoDirecto = findViewById(R.id.btn_pago_efectivo);
         //Iniciar la base para los pagos
         bdPagos = pagosXClientes.getWritableDatabase();
 
@@ -157,6 +161,38 @@ public class MainActivity extends AppCompatActivity {
 
             }
         });
+        //Botones para imprimir los pdfs
+        //Boton para pagos directos
+        btnPDFPagoDirecto.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ArrayList<String[]> consultaSQLite;
+                //PagosBanco
+                consultaSQLite = obtenerDatosSQL("PagosBanco");
+                ArchivoPDF pdf = new ArchivoPDF(MainActivity.this,"Pagosbancos.pdf", "Pago directo", consultaSQLite.size());
+                pdf.setDataSQL(consultaSQLite);
+                if(pdf.generarPDF()){
+                    Toast.makeText( MainActivity.this,"Archivo creado con exito", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText( MainActivity.this,"Archivo no creado", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
+        btnPDFPagoDigital.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ArrayList<String[]> consultaSQLite;
+                //PagosBanco
+                consultaSQLite = obtenerDatosSQL("PagosPayPal");
+                ArchivoPDF pdf = new ArchivoPDF(MainActivity.this,"PagosPayPal.pdf", "Pago paypal", consultaSQLite.size());
+                pdf.setDataSQL(consultaSQLite);
+                if(pdf.generarPDF()){
+                   Toast.makeText( MainActivity.this,"Archivo creado con exito", Toast.LENGTH_SHORT).show();
+                }else{
+                    Toast.makeText( MainActivity.this,"Archivo no creado", Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
     private void limpiarCampos(){
         this.correoTxt.setText("");
@@ -178,5 +214,26 @@ public class MainActivity extends AppCompatActivity {
         nombreCompletoTxt.setVisibility(View.GONE);
         montoTxt.setVisibility(View.GONE);
         btnPagarJ.setVisibility(View.GONE);
+    }
+    private ArrayList<String[]> obtenerDatosSQL(String tabla){
+        ArrayList<String[]>datos = null;
+        Cursor c = bdPagos.rawQuery("select * from "+tabla+";", null);
+        if(c != null){
+            if(c.moveToFirst()){
+                datos = new ArrayList<>();
+                do{
+                    datos.add(
+                            new String[]{
+                                    c.getString(0),
+                                    c.getString(1),
+                                    c.getString(2),
+                                    c.getString(3)
+                            }
+                    );
+                }while (c.moveToNext());
+            }
+            c.close();
+        }
+        return datos;
     }
 }
